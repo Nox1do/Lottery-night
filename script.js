@@ -896,25 +896,48 @@ function formatearHora(hora) {
 
 // Función para solicitar permisos de notificación
 function solicitarPermisosNotificacion() {
-    if ('Notification' in window) {
-        if (Notification.permission === 'default') {
+    const notificationBanner = document.getElementById('notification-banner');
+    
+    if (!('Notification' in window)) {
+        console.warn('Este navegador no soporta notificaciones.');
+        return;
+    }
+
+    if (Notification.permission === 'denied') {
+        notificationBanner.style.display = 'block';
+        return;
+    }
+
+    if (Notification.permission === 'default') {
+        notificationBanner.style.display = 'block';
+        
+        document.getElementById('enable-notifications').addEventListener('click', () => {
             Notification.requestPermission().then(permission => {
-                if (permission !== 'granted') {
+                if (permission === 'granted') {
+                    notificationBanner.style.display = 'none';
+                } else {
                     console.warn('El usuario denegó las notificaciones.');
                 }
             });
-        }
-    } else {
-        console.warn('Este navegador no soporta notificaciones.');
+        });
     }
 }
 
 // Función para enviar una notificación
 function enviarNotificacion(nombreLoteria) {
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (!('Notification' in window)) {
+        return;
+    }
+
+    if (Notification.permission === 'denied' || Notification.permission === 'default') {
+        document.getElementById('notification-banner').style.display = 'block';
+        return;
+    }
+
+    if (Notification.permission === 'granted') {
         new Notification('Loterías Noche', {
             body: `La lotería "${nombreLoteria}" está próxima a sortear.`,
-            icon: 'favicon.ico' // Asegúrate de tener un favicon.ico en tu proyecto
+            icon: 'favicon.ico'
         });
     }
 }
