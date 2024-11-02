@@ -446,13 +446,17 @@ body {
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
 }
 
 .card-header-left {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .lottery-card .lottery-code {
@@ -506,5 +510,59 @@ body {
 @media (min-width: 1025px) {
     .grid-container {
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+}
+
+/* Ajustar los estilos específicos para los estados en la vista grid */
+.lottery-card .estado-badge {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    width: auto;
+    min-width: 90px;
+    max-width: 110px;
+    flex-shrink: 0;
+}
+
+.lottery-card .estado-badge i {
+    font-size: 0.875rem;
+}
+
+/* Ajustes responsivos para el card header */
+@media (max-width: 640px) {
+    .card-header {
+        padding: 0.75rem;
+        align-items: center;
+    }
+    
+    .card-header-left {
+        font-size: 0.875rem;
+        overflow: hidden;
+    }
+    
+    .lottery-card .lottery-code {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .lottery-card .estado-badge {
+        padding: 0.25rem 0.5rem;
+        min-width: 80px;
+        font-size: 0.75rem;
+    }
+    
+    .lottery-card .badge {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    .card-body h3 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .time-info {
+        font-size: 0.75rem;
     }
 }

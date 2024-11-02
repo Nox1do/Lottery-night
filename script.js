@@ -957,14 +957,59 @@ function enviarNotificacion(nombreLoteria) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    cargarDatos();
+    // Recuperar la vista guardada
+    const savedView = localStorage.getItem('selectedView') || 'table';
     
-    // Iniciar el reloj
-    actualizarReloj();
-    setInterval(actualizarReloj, 30000);
+    // Aplicar la vista guardada
+    const tableContainer = document.querySelector('.table-container');
+    const gridContainer = document.querySelector('.grid-container');
+    const viewButtons = document.querySelectorAll('.btn-view');
+    
+    viewButtons.forEach(btn => {
+        if (btn.dataset.view === savedView) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
-    // Solicitar permisos de notificación
+    if (savedView === 'table') {
+        tableContainer.style.display = '';
+        gridContainer.style.display = 'none';
+    } else {
+        tableContainer.style.display = 'none';
+        gridContainer.style.display = 'grid';
+        cargarVistaGrid();
+    }
+
+    cargarDatos();
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
     solicitarPermisosNotificacion();
+
+    // Modificar el event listener de los botones de vista
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const viewType = btn.dataset.view;
+            const tableContainer = document.querySelector('.table-container');
+            const gridContainer = document.querySelector('.grid-container');
+            
+            // Guardar la preferencia de vista
+            localStorage.setItem('selectedView', viewType);
+            
+            if (viewType === 'table') {
+                tableContainer.style.display = '';
+                gridContainer.style.display = 'none';
+            } else {
+                tableContainer.style.display = 'none';
+                gridContainer.style.display = 'grid';
+                cargarVistaGrid();
+            }
+        });
+    });
 
     // Filtros
     document.querySelectorAll('.filter-item').forEach(filter => {
@@ -996,27 +1041,6 @@ document.addEventListener('DOMContentLoaded', () => {
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
             row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-    });
-
-    // Cambio de vista
-    document.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const viewType = btn.dataset.view;
-            const tableContainer = document.querySelector('.table-container');
-            const gridContainer = document.querySelector('.grid-container');
-            
-            if (viewType === 'table') {
-                tableContainer.style.display = '';
-                gridContainer.style.display = 'none';
-            } else {
-                tableContainer.style.display = 'none';
-                gridContainer.style.display = 'grid';
-                cargarVistaGrid();
-            }
         });
     });
 
