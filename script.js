@@ -799,16 +799,17 @@ function determinarEstado(horaSistema) {
 }
 
 function toggleEstado(estadoColumn) {
+    const isGridView = estadoColumn.closest('.lottery-card') !== null;
     const estadoBadge = estadoColumn.querySelector('.estado-badge');
-    const row = estadoColumn.parentElement;
-    const nombreCorto = row.querySelector('.lottery-code').textContent;
+    const container = isGridView ? estadoColumn.closest('.lottery-card') : estadoColumn.closest('tr');
+    const nombreCorto = container.querySelector('.lottery-code').textContent;
     let nuevoEstado;
 
     if (estadoBadge.classList.contains('estado-pendiente') || estadoBadge.classList.contains('estado-proximo')) {
         estadoBadge.classList.remove('estado-pendiente', 'estado-proximo');
         estadoBadge.classList.add('estado-finalizado');
         estadoBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Finalizado';
-        row.style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // Verde transparente
+        container.style.backgroundColor = 'rgba(34, 197, 94, 0.1)'; // Verde transparente
         nuevoEstado = 'Finalizado';
         
         // Remover notificación enviada si existe
@@ -821,7 +822,7 @@ function toggleEstado(estadoColumn) {
         estadoBadge.classList.remove('estado-finalizado');
         estadoBadge.classList.add('estado-pendiente');
         estadoBadge.innerHTML = '<i class="bi bi-clock-fill"></i> Pendiente';
-        row.style.backgroundColor = '';
+        container.style.backgroundColor = '';
         nuevoEstado = 'Pendiente';
     }
 
@@ -829,6 +830,18 @@ function toggleEstado(estadoColumn) {
     const estadosGuardados = JSON.parse(localStorage.getItem('estadosLoteria')) || {};
     estadosGuardados[nombreCorto] = nuevoEstado;
     localStorage.setItem('estadosLoteria', JSON.stringify(estadosGuardados));
+
+    // Actualizar la otra vista si está disponible
+    const otherView = isGridView ? 
+        document.querySelector(`tr .lottery-code[textContent="${nombreCorto}"]`)?.closest('tr') : 
+        document.querySelector(`.lottery-card .lottery-code[textContent="${nombreCorto}"]`)?.closest('.lottery-card');
+    
+    if (otherView) {
+        const otherBadge = otherView.querySelector('.estado-badge');
+        otherBadge.className = `estado-badge estado-${nuevoEstado.toLowerCase()}`;
+        otherBadge.innerHTML = `<i class="bi ${nuevoEstado === 'Finalizado' ? 'bi-check-circle-fill' : 'bi-clock-fill'}"></i> ${nuevoEstado}`;
+        otherView.style.backgroundColor = nuevoEstado === 'Finalizado' ? 'rgba(34, 197, 94, 0.1)' : '';
+    }
 }
 
 function actualizarEstados() {
@@ -1025,20 +1038,57 @@ function cargarVistaGrid() {
     const gridContainer = document.querySelector('.grid-container');
     gridContainer.innerHTML = '';
     
+    const estadosGuardados = JSON.parse(localStorage.getItem('estadosLoteria')) || {};
+    const notificacionesEnviadas = JSON.parse(localStorage.getItem('notificacionesEnviar')) || {};
+    
     datos.forEach(item => {
+        let estado = determinarEstado(item['HORA SISTEMA']);
+        
+        // Restaurar el estado desde localStorage si existe
+        if (estadosGuardados[item['NOMBRE CORTO']]) {
+            const estadoTexto = estadosGuardados[item['NOMBRE CORTO']];
+            estado = {
+                text: estadoTexto,
+                class: `estado-${estadoTexto.toLowerCase()}`,
+                icon: estadoTexto === 'Finalizado' ? 'bi-check-circle-fill' : estadoTexto === 'Próximo' ? 'bi-clock-history' : 'bi-clock-fill'
+            };
+        }
+
         const card = document.createElement('div');
         card.className = `lottery-card ${item.LOCALIDAD.toLowerCase()}`;
+        
+        // Aplicar color de fondo según el estado
+        if (estado.text === 'Finalizado') {
+            card.style.backgroundColor = 'rgba(34, 197, 94, 0.05)';
+        } else if (estado.text === 'Próximo') {
+            card.style.backgroundColor = 'rgba(250, 204, 21, 0.05)';
+            // Verificar si ya se envió una notificación para esta lotería
+            if (!notificacionesEnviadas[item['NOMBRE CORTO']]) {
+                enviarNotificacion(item['NOMBRE LARGO(NOMBRE CORTO)'].split('(')[0].trim());
+                notificacionesEnviadas[item['NOMBRE CORTO']] = true;
+                localStorage.setItem('notificacionesEnviar', JSON.stringify(notificacionesEnviadas));
+            }
+        } else if (estado.text === 'En cola') {
+            card.style.backgroundColor = 'rgba(156, 163, 175, 0.05)';
+        }
+
         card.innerHTML = `
             <div class="card-header">
-                <span class="badge badge-${item.LOCALIDAD.toLowerCase()}">${item.LOCALIDAD}</span>
-                <span class="lottery-code">${item['NOMBRE CORTO']}</span>
+                <div class="card-header-left">
+                    <span class="badge badge-${item.LOCALIDAD.toLowerCase()}">${item.LOCALIDAD}</span>
+                    <span class="lottery-code">${item['NOMBRE CORTO']}</span>
+                </div>
+                <span class="estado-badge ${estado.class}" data-hora-sistema="${item['HORA SISTEMA']}">
+                    <i class="bi ${estado.icon}"></i>
+                    ${estado.text}
+                </span>
             </div>
             <div class="card-body">
                 <h3>${item['NOMBRE LARGO(NOMBRE CORTO)'].split('(')[0].trim()}</h3>
                 <div class="time-info">
                     <div class="time">
                         <i class="bi bi-clock"></i>
-                        <span>RD: ${formatearHora(item['HORA SISTEMA'])}</span>
+                        <span>RD: ${formatearHora(item['HORA RD'])}</span>
                     </div>
                     <div class="time">
                         <i class="bi bi-clock-history"></i>
@@ -1047,6 +1097,13 @@ function cargarVistaGrid() {
                 </div>
             </div>
         `;
+
+        // Agregar evento click al estado
+        const estadoBadge = card.querySelector('.estado-badge');
+        estadoBadge.addEventListener('click', function() {
+            toggleEstado(card);
+        });
+        
         gridContainer.appendChild(card);
     });
 } 
