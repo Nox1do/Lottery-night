@@ -642,6 +642,34 @@ const datos = [
         "NOMBRE CORTO": "GE-NT-MR",
         "HORA RD": "12:34:00 AM",
         "HORA SISTEMA": "11:34:00 PM"
+    },
+    {
+        "LOCALIDAD": "VIRTUAL",
+        "NOMBRE LARGO(NOMBRE CORTO)": "PREMIERLOTTO 07PM (PREMIER03PM)",
+        "NOMBRE CORTO": "PREMIER03PM",
+        "HORA RD": "8:00:00 PM",
+        "HORA SISTEMA": "7:00:00 PM"
+    },
+    {
+        "LOCALIDAD": "VIRTUAL",
+        "NOMBRE LARGO(NOMBRE CORTO)": "PREMIERLOTTO 08PM (PREMIER08PM)",
+        "NOMBRE CORTO": "PREMIER08PM",
+        "HORA RD": "9:00:00 PM",
+        "HORA SISTEMA": "8:00:00 PM"
+    },
+    {
+        "LOCALIDAD": "VIRTUAL",
+        "NOMBRE LARGO(NOMBRE CORTO)": "BRAZIL 07PM (BRAZIL07PM)",
+        "NOMBRE CORTO": "BRAZIL07PM",
+        "HORA RD": "8:00:00 PM",
+        "HORA SISTEMA": "7:00:00 PM"
+    },
+    {
+        "LOCALIDAD": "VIRTUAL",
+        "NOMBRE LARGO(NOMBRE CORTO)": "BRAZIL 08PM (BRAZIL08PM)",
+        "NOMBRE CORTO": "BRAZIL08PM",
+        "HORA RD": "9:00:00 PM",
+        "HORA SISTEMA": "8:00:00 PM"
     }
 ]
 
@@ -894,11 +922,13 @@ function actualizarContadores() {
     const americana = datos.filter(item => item.LOCALIDAD === 'AMERICANA').length;
     const dominicana = datos.filter(item => item.LOCALIDAD === 'DOMINICANA').length;
     const honduras = datos.filter(item => item.LOCALIDAD === 'HONDURAS').length;
+    const virtual = datos.filter(item => item.LOCALIDAD === 'VIRTUAL').length;
 
     document.getElementById('count-all').textContent = total;
     document.getElementById('count-americana').textContent = americana;
     document.getElementById('count-dominicana').textContent = dominicana;
     document.getElementById('count-honduras').textContent = honduras;
+    document.getElementById('count-virtual').textContent = virtual;
 }
 
 function formatearHora(hora) {
