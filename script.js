@@ -708,7 +708,7 @@ function cargarDatos() {
         const row = document.createElement('tr');
         row.classList.add('lottery-row', item.LOCALIDAD.toLowerCase());
         
-        let estado = determinarEstado(item['HORA SISTEMA']);
+        let estado = determinarEstado(item['HORA SISTEMA'], item['HORA RD']);
         
         // Restaurar el estado desde localStorage si existe
         if (estadosGuardados[item['NOMBRE CORTO']]) {
@@ -735,18 +735,20 @@ function cargarDatos() {
                 <span class="lottery-code">${item['NOMBRE CORTO']}</span>
             </td>
             <td>
-                <div class="time">
+                <div class="time time-rd">
                     <i class="bi bi-clock"></i>
                     ${formatearHora(item['HORA RD'])}
                 </div>
             </td>
             <td>
-                <div class="time">
+                <div class="time time-sistema">
                     <i class="bi bi-clock-history"></i>
                     ${formatearHora(item['HORA SISTEMA'])}
                 </div>
             </td>
-            <td class="estado-column" data-hora-sistema="${item['HORA SISTEMA']}">
+            <td class="estado-column" 
+                data-hora-sistema="${item['HORA SISTEMA']}"
+                data-hora-rd="${item['HORA RD']}">
                 <span class="estado-badge ${estado.class}">
                     <i class="bi ${estado.icon}"></i>
                     ${estado.text}
@@ -781,21 +783,29 @@ function cargarDatos() {
 
     actualizarContadores();
     setInterval(actualizarEstados, 60000);
+
+    actualizarEstiloHorarios();
 }
 
-function determinarEstado(horaSistema) {
+function determinarEstado(horaSistema, horaRD) {
     const now = new Date();
-    const [hora, periodo] = horaSistema.split(' ');
+    // Usar la hora correspondiente según la zona horaria actual
+    const horaComparar = currentTimezone === -4 ? horaRD : horaSistema;
+    
+    const [hora, periodo] = horaComparar.split(' ');
     const [hh, mm] = hora.split(':');
     
-    let horaComparar = new Date();
-    horaComparar.setHours(
+    let horaObjetivo = new Date();
+    horaObjetivo.setHours(
         periodo === 'PM' ? (hh === '12' ? 12 : parseInt(hh) + 12) : (hh === '12' ? 0 : parseInt(hh)),
         parseInt(mm),
         0
     );
 
-    const diferenciaMinutos = (horaComparar - now) / 60000;
+    // Ajustar la hora actual según la zona horaria seleccionada
+    const horaActual = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (currentTimezone * 3600000));
+    
+    const diferenciaMinutos = (horaObjetivo - horaActual) / 60000;
 
     if (diferenciaMinutos <= 0) {
         if (diferenciaMinutos > -10) {
@@ -878,19 +888,20 @@ function actualizarEstados() {
     const notificacionesEnviadas = JSON.parse(localStorage.getItem('notificacionesEnviar')) || {};
 
     estadoColumns.forEach(column => {
-        const horaSistema = column.dataset.horaSistema;
         const row = column.parentElement;
         const nombreCorto = row.querySelector('.lottery-code').textContent;
+        const horaSistema = column.dataset.horaSistema;
+        const horaRD = column.dataset.horaRd;
 
         // Verificar si el estado está guardado como "Finalizado"
         if (estadosGuardados[nombreCorto] === 'Finalizado') {
             column.querySelector('.estado-badge').className = 'estado-badge estado-finalizado';
             column.querySelector('.estado-badge').innerHTML = '<i class="bi bi-check-circle-fill"></i> Finalizado';
             row.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
-            return; // Salir de la función para este elemento
+            return;
         }
 
-        const estado = determinarEstado(horaSistema);
+        const estado = determinarEstado(horaSistema, horaRD);
         const estadoBadge = column.querySelector('.estado-badge');
         
         estadoBadge.className = `estado-badge ${estado.class}`;
@@ -1079,8 +1090,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('timezone-toggle');
         btn.innerHTML = `<i class="bi bi-globe"></i> GMT${currentTimezone}`;
         
-        // Actualizar inmediatamente el reloj
+        // Actualizar inmediatamente el reloj y los estilos de horarios
         actualizarReloj();
+        actualizarEstiloHorarios();
+        actualizarEstados(); // Para actualizar los estados según la nueva zona horaria
     });
 
     // **Cambiar el intervalo de actualización de estados a cada segundo**
@@ -1096,7 +1109,7 @@ function cargarVistaGrid() {
     const notificacionesEnviadas = JSON.parse(localStorage.getItem('notificacionesEnviar')) || {};
     
     datos.forEach(item => {
-        let estado = determinarEstado(item['HORA SISTEMA']);
+        let estado = determinarEstado(item['HORA SISTEMA'], item['HORA RD']);
         
         // Restaurar el estado desde localStorage si existe
         if (estadosGuardados[item['NOMBRE CORTO']]) {
@@ -1140,11 +1153,11 @@ function cargarVistaGrid() {
             <div class="card-body">
                 <h3>${item['NOMBRE LARGO(NOMBRE CORTO)'].split('(')[0].trim()}</h3>
                 <div class="time-info">
-                    <div class="time">
+                    <div class="time time-rd">
                         <i class="bi bi-clock"></i>
                         <span>RD: ${formatearHora(item['HORA RD'])}</span>
                     </div>
-                    <div class="time">
+                    <div class="time time-sistema">
                         <i class="bi bi-clock-history"></i>
                         <span>Sistema: ${formatearHora(item['HORA SISTEMA'])}</span>
                     </div>
@@ -1159,5 +1172,25 @@ function cargarVistaGrid() {
         });
         
         gridContainer.appendChild(card);
+    });
+
+    actualizarEstiloHorarios();
+}
+
+// Agregar función para actualizar el estilo de las columnas de horario
+function actualizarEstiloHorarios() {
+    // Obtener todas las celdas de tiempo tanto en la vista tabla como en la vista grid
+    const tiempoRDElements = document.querySelectorAll('.time-rd');
+    const tiempoSistemaElements = document.querySelectorAll('.time-sistema');
+    
+    // Aplicar estilos según la zona horaria actual
+    tiempoRDElements.forEach(el => {
+        el.style.color = currentTimezone === -4 ? '#f97316' : '#374151'; // naranja si está activo, gris si no
+        el.style.fontWeight = currentTimezone === -4 ? '600' : '400';
+    });
+    
+    tiempoSistemaElements.forEach(el => {
+        el.style.color = currentTimezone === -5 ? '#f97316' : '#374151';
+        el.style.fontWeight = currentTimezone === -5 ? '600' : '400';
     });
 } 
